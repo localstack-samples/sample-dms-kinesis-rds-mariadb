@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+    localstack:
+        container_name: "${LOCALSTACK_DOCKER_NAME:-localstack-main}"
+        image: localstack/localstack-pro:latest # required for Pro
+        pull_policy: always
+        ports:
+            - "127.0.0.1:4566:4566" # LocalStack Gateway
+            - "127.0.0.1:4510-4559:4510-4559" # external services port range
+            - "127.0.0.1:443:443" # LocalStack HTTPS Gateway (Pro)
+        environment:
+            # Activate LocalStack Pro: https://docs.localstack.cloud/getting-started/auth-token/
+            - LOCALSTACK_AUTH_TOKEN=${LOCALSTACK_AUTH_TOKEN:?} # required for Pro
+            - ENABLE_DMS=1
+        volumes:
+            - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
+            - "/var/run/docker.sock:/var/run/docker.sock"
+        healthcheck:
+            test: curl --fail localhost.localstack.cloud:4566/_localstack/health || exit 1
+            interval: 5s
+            timeout: 2s
+            retries: 5
+            start_period: 10s
+    mariadb_server:
+        container_name: dms-sample-mariadb
+        image: mariadb
+        ports:
+            - "127.0.0.1:3306:3306"
+        restart: always
+        command: --binlog-checksum=NONE --binlog-format=ROW --binlog-row-image=FULL
+        environment:
+            - MARIADB_RANDOM_ROOT_PASSWORD=1
+            - MARIADB_DATABASE=${DB_NAME:-dms_sample}
+            - MARIADB_USER=${USERNAME:-admin}
+            - MARIADB_PASSWORD=${USERPWD:-1Wp2Aide=z=,eLX3RrD4gJ4o54puex}
