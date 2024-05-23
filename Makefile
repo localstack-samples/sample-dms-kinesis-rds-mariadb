@@ -37,7 +37,6 @@ docker-up:
 	$(LOCAL_ENV) docker-compose up --build
 
 deploy:
-	$(LOCAL_ENV) docker-compose up --build --detach --wait
 	$(VENV_RUN); $(LOCAL_ENV) cdklocal bootstrap --output ./cdk.local.out
 	$(VENV_RUN); $(LOCAL_ENV) cdklocal deploy --require-approval never --output ./cdk.local.out
 

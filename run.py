@@ -1,12 +1,12 @@
 import json
 import os
+import time
 from pprint import pprint
 from time import sleep
-import time
-from typing import Callable, TypeVar, TypedDict
+from typing import Callable, TypedDict, TypeVar
 
-from boto3 import client
 import pymysql.cursors
+from boto3 import client
 
 from lib import query as q
 
@@ -63,7 +63,7 @@ def get_cfn_output():
 
 def get_credentials(secret_arn: str) -> Credentials:
     secret_value = secretsmanager.get_secret_value(SecretId=secret_arn)
-    credentials =  Credentials(**json.loads(secret_value["SecretString"]))
+    credentials = Credentials(**json.loads(secret_value["SecretString"]))
     if credentials["host"] == "mariadb_server":
         credentials["host"] = "localhost"
     return credentials
@@ -90,7 +90,6 @@ def run_queries_on_mysql(
     credentials: Credentials,
     queries: list[str],
 ):
-
     cursor = None
     cnx = None
     try:
@@ -229,9 +228,7 @@ def execute_full_load(cfn_output: CfnOutput):
     print("\tInserting data")
     run_queries_on_mysql(credentials, q.PRESEED_DATA)
 
-    authors = get_query_result(
-        credentials, "SELECT first_name, last_name FROM authors"
-    )
+    authors = get_query_result(credentials, "SELECT first_name, last_name FROM authors")
     accounts = get_query_result(
         credentials, "SELECT name, account_balance FROM accounts"
     )

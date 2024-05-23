@@ -3,18 +3,14 @@ import os
 from typing import Iterable
 
 import aws_cdk as cdk
-from aws_cdk import (
-    aws_iam as iam,
-    aws_dms as dms,
-    aws_ec2 as ec2,
-    aws_kinesis as kinesis,
-    aws_rds as rds,
-    aws_secretsmanager as secretsmanager,
-    SecretValue,
-    Stack,
-)
+from aws_cdk import SecretValue, Stack
+from aws_cdk import aws_dms as dms
+from aws_cdk import aws_ec2 as ec2
+from aws_cdk import aws_iam as iam
+from aws_cdk import aws_kinesis as kinesis
+from aws_cdk import aws_rds as rds
+from aws_cdk import aws_secretsmanager as secretsmanager
 from constructs import Construct
-
 
 DB_NAME = os.getenv("DB_NAME", "")
 
@@ -26,7 +22,6 @@ DB_PORT = os.getenv("DB_PORT", "")
 
 
 class DmsSampleStack(Stack):
-
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
