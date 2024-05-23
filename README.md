@@ -1,84 +1,108 @@
-# Dms Sample
+# Sample Application showcasing how to use DMS to create CDC
 
-This scenario demonstrate how to use DMS to create cdc and full load tasks using the CDK in Python.
-It is a self contained scenario that will create a vpc to hosts 2 databases, a kinesis stream and 4 replication tasks.
+## Introduction
 
-The results from the `run` can also be seen in the `run.out` file.
+This scenario demonstrates how to use Database Migration Service (DMS) to create change data capture (CDC) and full load tasks using the Cloud Development Kit in Python. It is a self-contained setup that will create a VPC to host 2 databases, a Kinesis stream, and 4 replication tasks.
 
-# Requirements
+## Pre-requisites
 
-- python3.10+
-- [Aws cdk](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html)
-- [cdklocal](https://www.npmjs.com/package/aws-cdk-local)
+-   [LocalStack Auth Token](https://docs.localstack.cloud/getting-started/auth-token/)
+-   [Python 3.10](https://www.python.org/downloads/) & `pip`
+-   [Docker Compose](https://docs.docker.com/compose/install/)
+-   [CDK](https://docs.localstack.cloud/user-guide/integrations/aws-cdk/)  with the  [`cdklocal`](https://github.com/localstack/aws-cdk-local) wrapper.
 
-# Installation
+  
+Start LocalStack Pro with the `LOCALSTACK_AUTH_TOKEN`  pre-configured:
 
-The Makefile contains all you need to install start and run this sample.
-
-The `install` command will create python virtual environment and install the required python dependencies. You can control the venv path by exporting `VENV_DIR` to your environment. Defaults to `.venv`
-
+```bash
+export LOCALSTACK_AUTH_TOKEN=<your-auth-token>
+docker-compose up
 ```
+
+The Docker Compose file will start LocalStack Pro container and a MariaDB container. The MariaDB container will be used to showcase how to reach a database external to LocalStack.
+
+## Instructions
+
+### Install the dependencies
+
+Install all the dependencies by running the following command:
+
+```bash
 make install
 ```
 
-# Deploy the stack
+### Creating the infrastructure
 
-To start with Localstack in detached mode, simply run the `deploy` command. 
-It will first start the docker containing Localstack and an mariadb container. This DB will be used to showcase how to reach a database external to Localstack.
-Then it will deploy the CDK stack to Loacalstack
+To deploy the infrastructure, you can run the following command:
 
-When deploying against AWS, both databases will be rds DBs.
-
-```
-# to run against Localstack
-LOCALSTACK_AUTH_TOKEN=<Auth_Token> make deploy
-
-# to run against aws
-make deploy-aws
+```bash
+make deploy
 ```
 
-When running against Localstack, if you would rather see the Localstack logs, you can start the docker in a separate terminal before deploying the stack.
+After successful deployment, you will see the following output:
 
+```bash
+Outputs:
+DMsSampleSetupStack.cdcTask1 = arn:aws:dms:us-east-1:000000000000:task:A001NYMR4Z0NK45ZBJT6954RNMGEKL2PQ9XQYR4
+DMsSampleSetupStack.cdcTask2 = arn:aws:dms:us-east-1:000000000000:task:GO5RC4J6CKZWSJKF4CGB6ZV3ZEMGI38DFPJF2ZU
+DMsSampleSetupStack.cdcTaskSecret = arn:aws:secretsmanager:us-east-1:000000000000:secret:DMsSampleSetupStack-rdsinstanceSecret07FEB42-907ed0cf-RSPkZq
+DMsSampleSetupStack.fullTask1 = arn:aws:dms:us-east-1:000000000000:task:BCZLANJP9WFXKNTYBEWTAQ1YHIVJ5C2ZUIHDPB2
+DMsSampleSetupStack.fullTask2 = arn:aws:dms:us-east-1:000000000000:task:ZO7WPZTTAKOA1CONK2Y3Y0H6FXLAFWUYX1OPGPM
+DMsSampleSetupStack.fullTaskSecret = arn:aws:secretsmanager:us-east-1:000000000000:secret:DMsSampleSetupStack-mariadbaccesssecret40AD7-611fcbcd-IKWDDh
+DMsSampleSetupStack.kinesisStream = arn:aws:kinesis:us-east-1:000000000000:stream/DMsSampleSetupStack-TargetStream3B4B2880-02dd0371
+Stack ARN:
+arn:aws:cloudformation:us-east-1:000000000000:stack/DMsSampleSetupStack/b8298866
+
+✨  Total time: 49.33s
 ```
-LOCALSTACK_AUTH_TOKEN=<Auth_Token> docker-compose up
-```
 
-# Run the tasks
+### Running the tasks
 
-There are four tasks that have been deployed with the stack. The run is broken down in two parts.
+You can run the tasks by executing the following command:
 
-First we run a full load replication task against the external db.
-
-- 3 tables are created: `authors`, `accounts` and `novels`
-- 4 inserts are made
-- Full load task 1 is started targetting tables starting with an `a`. Table mapping: `a%`
-- Capture and log of 6 kinesis event. 2 drop tables, 2 create tables and 2 inserts.
-- Full load task 2 is started targetting table `novels`. Table mapping: `novels`
-- Capture and log of 4 kinesis event. 1 drop table, 1 create table and 2 inserts.
-- Log of `table_statistics` for both tasks
-
-Then we run a cdc replication task against the rds database.
-
-- 3 tables are created: `authors`, `accounts` and `novels`
-- Cdc task 1 is started targetting tables starting with an `a`. Table mapping: `a%`
-- Cdc task 2 is started targetting table `novels`. Table mapping: `novels`
-- Capture and log of 5 kinesis events. 2 creating the `awsdms_apply_exceptions` table and 3 creating our tables.
-- 4 inserts are made.
-- Capture and log of 4 kinesis events. 2 on tables replicated by taks 1 and 2 on table replicated by taks 2.
-- 3 table alterations are made. 1 per table.
-- Capture and log of 3 kinesis events.
-- Log of `table_statistics` for both tasks
-
- 2 of them perform a Full Load replication on an dockered MariaDb. While the 2 others perform a CDC replication on a MariaDb RDS Database.
-
-All tasks have the same Kinesis Stream as a target.
-
-The sample run can be excuted by installing the python requirements and running the `run`/`run-aws` command.
-
-```
-# to run against Localstack
+```bash
 make run
+```
 
-# to run against aws
+## Developer Notes
+
+Four tasks are deployed with the stack, split into two parts.
+
+First, a full load replication task runs against the external DB:
+
+-   Creates three tables: `authors`, `accounts`, `novels`
+-   Makes four inserts
+-   Starts full load task 1 targeting tables starting with 'a' (`a%` table mapping)
+-   Captures and logs six Kinesis events: 2 drop tables, 2 create tables, 2 inserts
+-   Starts full load task 2 targeting the `novels` table (`novels` table mapping)
+-   Captures and logs four Kinesis events: 1 drop table, 1 create table, 2 inserts
+-   Logs `table_statistics` for both tasks
+
+Next, a CDC replication task runs against the RDS database:
+
+-   Creates three tables: `authors`, `accounts`, `novels`
+-   Starts CDC task 1 targeting tables starting with 'a' (`a%` table mapping)
+-   Starts CDC task 2 targeting the `novels` table (`novels` table mapping)
+-   Captures and logs five Kinesis events: 2 for `awsdms_apply_exceptions` table, 3 for our tables
+-   Makes four inserts
+-   Captures and logs four Kinesis events: 2 for tables in task 1, 2 for table in task 2
+-   Makes three table alterations, one per table
+-   Captures and logs three Kinesis events
+-   Logs `table_statistics` for both tasks
+
+Two tasks perform full load replication on Dockerized MariaDB. The other two perform CDC replication on a MariaDB RDS database.
+
+All tasks target the same Kinesis Stream.
+
+## Deploying on AWS
+
+You can deploy and run the stack on AWS by running the following commands:
+
+```bash
+make deploy-aws
 make run-aws
 ```
+
+## License
+
+This project is licensed under the Apache 2.0 License.
