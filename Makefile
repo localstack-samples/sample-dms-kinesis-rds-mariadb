@@ -9,6 +9,9 @@ STACK_NAME ?= DMsSampleSetupStack
 DB_ENDPOINT ?= mariadb_server
 DB_PORT ?= 3306
 ENDPOINT_URL = http://localhost.localstack.cloud:4566
+export AWS_ACCESS_KEY_ID ?= test
+export AWS_SECRET_ACCESS_KEY ?= test
+export AWS_DEFAULT_REGION ?= us-east-1
 
 VENV_RUN = . $(VENV_ACTIVATE)
 
@@ -30,11 +33,11 @@ $(VENV_ACTIVATE):
 
 venv: $(VENV_ACTIVATE)    ## Create a new (empty) virtual environment
 
+start:
+	$(LOCAL_ENV) docker compose up --build --detach --wait
+
 install: venv
 	$(VENV_RUN); $(PIP_CMD) install -r requirements.txt
-
-docker-up:
-	$(LOCAL_ENV) docker-compose up --build
 
 deploy:
 	$(VENV_RUN); $(LOCAL_ENV) cdklocal bootstrap --output ./cdk.local.out
