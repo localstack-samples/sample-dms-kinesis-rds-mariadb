@@ -4,6 +4,8 @@
 
 This scenario demonstrates how to use Database Migration Service (DMS) to create change data capture (CDC) and full load tasks using the Cloud Development Kit in Python. It is a self-contained setup that will create a VPC to host 2 databases, a Kinesis stream, and 4 replication tasks.
 
+![dms-mariadb-to-kinesis](./dms-mariadb-to-kinesis.jpg)
+
 ## Pre-requisites
 
 -   [LocalStack Auth Token](https://docs.localstack.cloud/getting-started/auth-token/)
