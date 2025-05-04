@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 VENV_BIN ?= python3 -m venv
 VENV_DIR ?= .venv
 PIP_CMD ?= pip3
@@ -33,28 +35,41 @@ $(VENV_ACTIVATE):
 
 venv: $(VENV_ACTIVATE)    ## Create a new (empty) virtual environment
 
-start:
-	$(LOCAL_ENV) docker compose up --build --detach --wait
+check:					  ## Check if all required prerequisites are available
+	@command -v docker > /dev/null 2>&1 || { echo "Docker is not installed."; exit 1; }
+	@command -v localstack > /dev/null 2>&1 || { echo "LocalStack is not installed."; exit 1; }
+	@command -v python > /dev/null 2>&1 || { echo "Python is not installed."; exit 1; }
+	@command -v cdk > /dev/null 2>&1 || { echo "AWS CDK is not installed."; exit 1; }
+	@command -v cdklocal > /dev/null 2>&1 || { echo "CDK Local is not installed."; exit 1; }
+	@echo "All required prerequisites are available."
 
-install: venv
+start:					  ## Start localstack
+	$(LOCAL_ENV) @LOCALSTACK_AUTH_TOKEN=$(LOCALSTACK_AUTH_TOKEN) docker compose up --build --detach --wait
+
+install: venv 		 	  ## Install dependencies	
 	$(VENV_RUN); $(PIP_CMD) install -r requirements.txt
 
-deploy:
+deploy:					  ## Deploy the stack on LocalStack
 	$(VENV_RUN); $(LOCAL_ENV) cdklocal bootstrap --output ./cdk.local.out
 	$(VENV_RUN); $(LOCAL_ENV) cdklocal deploy --require-approval never --output ./cdk.local.out
 
-deploy-aws:
+deploy-aws:				 ## Deploy the stack on AWS
 	$(VENV_RUN); $(CLOUD_ENV) cdk bootstrap
 	$(VENV_RUN); $(CLOUD_ENV) cdk deploy --require-approval never
 
-destroy:
+destroy:				 ## Destroy the stack on LocalStack
 	docker-compose down
 
-destroy-aws: venv
+destroy-aws: venv		 ## Destroy the stack on AWS
 	$(VENV_RUN); $(CLOUD_ENV) cdk destroy --require-approval never
 
-run:
+test:					 ## Test the application on LocalStack
 	$(VENV_RUN); $(LOCAL_ENV) python run.py
 
-run-aws:
+test-aws:				 ## Test the application on AWS
 	$(VENV_RUN); $(CLOUD_ENV) python run.py
+
+logs:					 ## Show logs from LocalStack
+	@docker logs -f localstack_main > logs.txt
+
+.PHONY: usage install start deploy test logs destroy deploy-aws test-aws destroy-aws
