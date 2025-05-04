@@ -44,7 +44,7 @@ check:					  ## Check if all required prerequisites are available
 	@echo "All required prerequisites are available."
 
 start:					  ## Start localstack
-	$(LOCAL_ENV) @LOCALSTACK_AUTH_TOKEN=$(LOCALSTACK_AUTH_TOKEN) docker compose up --build --detach --wait
+	$(LOCAL_ENV) LOCALSTACK_AUTH_TOKEN=$(LOCALSTACK_AUTH_TOKEN) docker compose up --build --detach --wait
 
 install: venv 		 	  ## Install dependencies	
 	$(VENV_RUN); $(PIP_CMD) install -r requirements.txt
