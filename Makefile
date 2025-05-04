@@ -57,7 +57,7 @@ deploy-aws:				 ## Deploy the stack on AWS
 	$(VENV_RUN); $(CLOUD_ENV) cdk bootstrap
 	$(VENV_RUN); $(CLOUD_ENV) cdk deploy --require-approval never
 
-destroy:				 ## Destroy the stack on LocalStack
+stop:				     ## Stop LocalStack
 	docker-compose down
 
 destroy-aws: venv		 ## Destroy the stack on AWS
@@ -70,6 +70,6 @@ test-aws:				 ## Test the application on AWS
 	$(VENV_RUN); $(CLOUD_ENV) python run.py
 
 logs:					 ## Show logs from LocalStack
-	@docker logs -f localstack_main > logs.txt
+	@docker logs localstack-main > logs.txt
 
-.PHONY: usage install start deploy test logs destroy deploy-aws test-aws destroy-aws
+.PHONY: usage install start deploy test logs stop deploy-aws test-aws destroy-aws
