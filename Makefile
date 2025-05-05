@@ -63,11 +63,14 @@ stop:				     ## Stop LocalStack
 destroy-aws: venv		 ## Destroy the stack on AWS
 	$(VENV_RUN); $(CLOUD_ENV) cdk destroy --require-approval never
 
-test:					 ## Test the application on LocalStack
+run:					 ## Run the application on LocalStack
 	$(VENV_RUN); $(LOCAL_ENV) python run.py
 
-test-aws:				 ## Test the application on AWS
+run-aws:				 ## Run the application on AWS
 	$(VENV_RUN); $(CLOUD_ENV) python run.py
+
+test:					 ## Test the application on LocalStack
+	$(VENV_RUN); $(LOCAL_ENV) pytest
 
 logs:					 ## Show logs from LocalStack
 	@docker logs localstack-main > logs.txt

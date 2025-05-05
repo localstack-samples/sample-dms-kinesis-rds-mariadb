@@ -3,3 +3,4 @@ boto3==1.34.96
 constructs>=10.0.0,<11.0.0
 cryptography==42.0.5
 pymysql==1.1.0
+pytest
