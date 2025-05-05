@@ -1,4 +1,4 @@
-name: Deploy on LocalStack 
+name: Setup infrastructure using CDK
 
 on:
   push:
@@ -16,7 +16,7 @@ on:
 
 jobs:
   cdk:
-    name: Setup infrastructure using CDK
+    name: Run Integration Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -25,12 +25,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
       - name: Install CDK
         run: |
@@ -55,4 +55,35 @@ jobs:
 
       - name: Run tests
         run: |
-          make run
+          make test
+
+      - name: Show LocalStack logs
+        if: always()
+        run: |
+          make logs
+          cat logs.txt
+
+      - name: Send a Slack notification
+        if: failure() || github.event_name != 'pull_request'
+        uses: ravsamhq/notify-slack-action@v2
+        with:
+          status: ${{ job.status }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          notification_title: "{workflow} has {status_message}"
+          message_format: "{emoji} *{workflow}* {status_message} in <{repo_url}|{repo}>"
+          footer: "Linked Repo <{repo_url}|{repo}> | <{run_url}|View Workflow run>"
+          notify_when: "failure"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Generate a Diagnostic Report
+        if: failure()
+        run: |
+          curl -s localhost:4566/_localstack/diagnose | gzip -cf > diagnose.json.gz
+
+      - name: Upload the Diagnostic Report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnose.json.gz
+          path: ./diagnose.json.gz
