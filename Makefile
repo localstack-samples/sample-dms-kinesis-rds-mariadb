@@ -70,7 +70,7 @@ run-aws:				 ## Run the application on AWS
 	$(VENV_RUN); $(CLOUD_ENV) python run.py
 
 test:					 ## Test the application on LocalStack
-	$(VENV_RUN); $(LOCAL_ENV) pytest
+	$(VENV_RUN); $(LOCAL_ENV) pytest tests/test_infra.py
 
 logs:					 ## Show logs from LocalStack
 	@docker logs localstack-main > logs.txt

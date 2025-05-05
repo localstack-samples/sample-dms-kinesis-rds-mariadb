@@ -57,7 +57,7 @@ jobs:
         run: |
           make test
 
-      - name: Show localstack logs
+      - name: Show LocalStack logs
         if: always()
         run: |
           make logs
