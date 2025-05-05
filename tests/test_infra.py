@@ -108,6 +108,7 @@ PRESEED_DATA = [
     SQL_INSERT_NOVELS_SAMPLE_DATA,
 ]
 
+
 class CfnOutput(TypedDict):
     cdcTaskSecret: str
     cdcTask1: str
@@ -255,7 +256,9 @@ def get_table_counts(credentials: Credentials) -> dict:
     counts = {}
     for table in tables:
         try:
-            result = get_query_result(credentials, f"SELECT COUNT(*) as count FROM {table}")
+            result = get_query_result(
+                credentials, f"SELECT COUNT(*) as count FROM {table}"
+            )
             counts[table] = result[0]["count"] if result else 0
         except Exception:
             counts[table] = 0
@@ -298,13 +301,13 @@ def execute_full_load(cfn_output: CfnOutput):
     credentials = get_credentials(cfn_output["fullTaskSecret"])
     print("\n=== Starting Full Load Test ===")
     print(f"Credentials: {credentials}")
-    
+
     # Full load Flow
     threshold_timestamp = int(time.time())
     task_1 = cfn_output["fullTask1"]
     task_2 = cfn_output["fullTask2"]
     stream = cfn_output["kinesisStream"]
-    
+
     print(f"\nTask ARNs:")
     print(f"Task 1: {task_1}")
     print(f"Task 2: {task_2}")
@@ -314,11 +317,11 @@ def execute_full_load(cfn_output: CfnOutput):
     print("STARTING FULL LOAD FLOW")
     print("*" * 12)
     print(f"db endpoint: {credentials['host']}:{credentials['port']}\n")
-    
+
     print("\n=== Initial State ===")
     initial_counts = get_table_counts(credentials)
     initial_schemas = get_table_schemas(credentials)
-    
+
     print("\tCleaning tables")
     run_queries_on_mysql(credentials, DROP_TABLES)
     print("\tCreating tables")
@@ -335,11 +338,11 @@ def execute_full_load(cfn_output: CfnOutput):
     print("\n\tStarting Full load task 1 a%")
     start_task(task_1)
     wait_for_task_status(task_1, "stopped")
-    
+
     print("\n=== Task 1 Statistics ===")
     task1_stats = describe_table_statistics(task_1)
     pprint(task1_stats)
-    
+
     # 2 drops, 2 create, 1 authors, 1 accounts = 6
     kinesis_records = wait_for_kinesis(stream, 6, threshold_timestamp)
     print("\n=== Task 1 Kinesis Records ===")
@@ -352,11 +355,11 @@ def execute_full_load(cfn_output: CfnOutput):
     print("\tStarting Full load task 2 novels")
     start_task(task_2)
     wait_for_task_status(task_2, "stopped")
-    
+
     print("\n=== Task 2 Statistics ===")
     task2_stats = describe_table_statistics(task_2)
     pprint(task2_stats)
-    
+
     # 1 drop, 1 create, 2 novels = 4
     kinesis_records = wait_for_kinesis(stream, 4, threshold_timestamp)
     print("\n=== Task 2 Kinesis Records ===")
@@ -370,24 +373,21 @@ def execute_full_load(cfn_output: CfnOutput):
 
     print("\tCleaning tables")
     run_queries_on_mysql(credentials, DROP_TABLES)
-    
+
     return {
-        "initial_state": {
-            "counts": initial_counts,
-            "schemas": initial_schemas
-        },
+        "initial_state": {"counts": initial_counts, "schemas": initial_schemas},
         "post_load_state": {
             "counts": post_load_counts,
             "schemas": post_load_schemas,
-            "data": post_load_data
+            "data": post_load_data,
         },
         "final_state": {
             "counts": final_counts,
             "schemas": final_schemas,
-            "data": final_data
+            "data": final_data,
         },
         "task1_stats": task1_stats,
-        "task2_stats": task2_stats
+        "task2_stats": task2_stats,
     }
 
 
@@ -395,16 +395,16 @@ def execute_cdc(cfn_output: CfnOutput):
     credentials = get_credentials(cfn_output["cdcTaskSecret"])
     print("\n=== Starting CDC Test ===")
     print(f"Credentials: {credentials}")
-    
+
     task_1 = cfn_output["cdcTask1"]
     task_2 = cfn_output["cdcTask2"]
     stream = cfn_output["kinesisStream"]
-    
+
     print(f"\nTask ARNs:")
     print(f"Task 1: {task_1}")
     print(f"Task 2: {task_2}")
     print(f"Kinesis Stream: {stream}")
-    
+
     print("*" * 12)
     print("STARTING CDC FLOW")
     print("*" * 12)
@@ -442,11 +442,11 @@ def execute_cdc(cfn_output: CfnOutput):
     threshold_timestamp = int(time.time())
     sleep(1)
     run_queries_on_mysql(credentials, PRESEED_DATA)
-    
+
     print("\n=== After Data Insert ===")
     post_insert_counts = get_table_counts(credentials)
     post_insert_data = get_all_table_data(credentials)
-    
+
     # 1 authors, 1 accounts, 2 novels
     kinesis_records = wait_for_kinesis(stream, 4, threshold_timestamp)
     print("\n=== Insert Events ===")
@@ -458,10 +458,10 @@ def execute_cdc(cfn_output: CfnOutput):
     threshold_timestamp = int(time.time())
     sleep(1)
     run_queries_on_mysql(credentials, ALTER_TABLES)
-    
+
     print("\n=== After Schema Changes ===")
     post_alter_schemas = get_table_schemas(credentials)
-    
+
     kinesis_records = wait_for_kinesis(stream, 3, threshold_timestamp)
     print("\n=== Alter Table Events ===")
     pprint(kinesis_records)
@@ -487,30 +487,22 @@ def execute_cdc(cfn_output: CfnOutput):
 
     print("\n\tDrop tables")
     run_queries_on_mysql(credentials, DROP_TABLES)
-    
+
     return {
-        "initial_state": {
-            "counts": initial_counts,
-            "schemas": initial_schemas
-        },
+        "initial_state": {"counts": initial_counts, "schemas": initial_schemas},
         "post_create_state": {
             "counts": post_create_counts,
-            "schemas": post_create_schemas
+            "schemas": post_create_schemas,
         },
-        "post_insert_state": {
-            "counts": post_insert_counts,
-            "data": post_insert_data
-        },
-        "post_alter_state": {
-            "schemas": post_alter_schemas
-        },
+        "post_insert_state": {"counts": post_insert_counts, "data": post_insert_data},
+        "post_alter_state": {"schemas": post_alter_schemas},
         "final_state": {
             "counts": final_counts,
             "schemas": final_schemas,
-            "data": final_data
+            "data": final_data,
         },
         "task1_stats": task1_stats,
-        "task2_stats": task2_stats
+        "task2_stats": task2_stats,
     }
 
 
@@ -587,23 +579,43 @@ def test_full_load(cfn_output):
     task1_records = wait_for_kinesis(stream, 6, threshold_timestamp)
     assert len(task1_records) == 6, "Expected 6 Kinesis records for Task 1"
     sleep(5)
-    
+
     # Verify Task 1 statistics
     task1_stats = describe_table_statistics(task_1)
-    authors_stats = next(stat for stat in task1_stats["TableStatistics"] if stat["TableName"] == "authors")
-    accounts_stats = next(stat for stat in task1_stats["TableStatistics"] if stat["TableName"] == "accounts")
-    
+    authors_stats = next(
+        stat
+        for stat in task1_stats["TableStatistics"]
+        if stat["TableName"] == "authors"
+    )
+    accounts_stats = next(
+        stat
+        for stat in task1_stats["TableStatistics"]
+        if stat["TableName"] == "accounts"
+    )
+
     # Check full load rows
-    assert authors_stats["FullLoadRows"] == 1, "Expected 1 full load row in authors table"
-    assert accounts_stats["FullLoadRows"] == 1, "Expected 1 full load row in accounts table"
-    
+    assert (
+        authors_stats["FullLoadRows"] == 1
+    ), "Expected 1 full load row in authors table"
+    assert (
+        accounts_stats["FullLoadRows"] == 1
+    ), "Expected 1 full load row in accounts table"
+
     # Check table state
-    assert authors_stats["TableState"] == "Table completed", "Authors table should be completed"
-    assert accounts_stats["TableState"] == "Table completed", "Accounts table should be completed"
-    
+    assert (
+        authors_stats["TableState"] == "Table completed"
+    ), "Authors table should be completed"
+    assert (
+        accounts_stats["TableState"] == "Table completed"
+    ), "Accounts table should be completed"
+
     # Check error counts
-    assert authors_stats["FullLoadErrorRows"] == 0, "Should have no errors in authors table load"
-    assert accounts_stats["FullLoadErrorRows"] == 0, "Should have no errors in accounts table load"
+    assert (
+        authors_stats["FullLoadErrorRows"] == 0
+    ), "Should have no errors in authors table load"
+    assert (
+        accounts_stats["FullLoadErrorRows"] == 0
+    ), "Should have no errors in accounts table load"
 
     # Execute and verify Task 2
     sleep(5)
@@ -615,12 +627,20 @@ def test_full_load(cfn_output):
 
     # Verify Task 2 statistics
     task2_stats = describe_table_statistics(task_2)
-    novels_stats = next(stat for stat in task2_stats["TableStatistics"] if stat["TableName"] == "novels")
-    
+    novels_stats = next(
+        stat for stat in task2_stats["TableStatistics"] if stat["TableName"] == "novels"
+    )
+
     # Check full load rows and state for novels
-    assert novels_stats["FullLoadRows"] == 2, "Expected 2 full load rows in novels table"
-    assert novels_stats["TableState"] == "Table completed", "Novels table should be completed"
-    assert novels_stats["FullLoadErrorRows"] == 0, "Should have no errors in novels table load"
+    assert (
+        novels_stats["FullLoadRows"] == 2
+    ), "Expected 2 full load rows in novels table"
+    assert (
+        novels_stats["TableState"] == "Table completed"
+    ), "Novels table should be completed"
+    assert (
+        novels_stats["FullLoadErrorRows"] == 0
+    ), "Should have no errors in novels table load"
 
     # Cleanup
     run_queries_on_mysql(credentials, DROP_TABLES)
@@ -671,9 +691,13 @@ def test_cdc(cfn_output):
 
     # Verify schema changes
     schemas = get_table_schemas(credentials)
-    authors_email_field = next(field for field in schemas["authors"] if field["Field"] == "email")
-    assert authors_email_field["Type"] == "varchar(100)", "Expected email field type to be varchar(100)"
-    
+    authors_email_field = next(
+        field for field in schemas["authors"] if field["Field"] == "email"
+    )
+    assert (
+        authors_email_field["Type"] == "varchar(100)"
+    ), "Expected email field type to be varchar(100)"
+
     # Verify accounts table modification
     accounts_fields = [field["Field"] for field in schemas["accounts"]]
     assert "profile_picture" not in accounts_fields, "profile_picture should be dropped"
