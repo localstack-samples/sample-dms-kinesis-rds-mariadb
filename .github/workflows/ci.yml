@@ -1,4 +1,4 @@
-name: Deploy on LocalStack 
+name: Setup infrastructure using CDK
 
 on:
   push:
@@ -16,7 +16,7 @@ on:
 
 jobs:
   cdk:
-    name: Setup infrastructure using CDK
+    name: Run Integration Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
